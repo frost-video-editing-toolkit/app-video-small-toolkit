@@ -1,0 +1,89 @@
+{
+  "name": "editing-video-app",
+  "version": "1.0.0",
+  "description": "Electron video toolkit powered by FFmpeg",
+  "author": "Frost",
+  "main": "electron/main.js",
+  "scripts": {
+    "react:start": "npm --prefix ui start",
+    "react:build": "npm --prefix ui run build",
+    "electron:build": "tsc -p electron/tsconfig.json",
+    "electron:watch": "tsc -w -p electron/tsconfig.json",
+    "start": "npm run electron:build && electron .",
+    "dev": "concurrently \"npm run react:start\" \"npm run electron:watch\" \"wait-on tcp:3000 electron/dist/preload.js && set ELECTRON_START_URL=http://localhost:3000 && electron .\"",
+    "move:exe": "node -e \"const fs=require('fs');const path=require('path');const root=process.cwd();const dist=path.join(root,'dist');if(!fs.existsSync(dist)) process.exit(0);for(const name of ['FFmpegVideoWorkbench-Setup.exe']){const target=path.join(root,name);if(fs.existsSync(target)) fs.rmSync(target,{force:true});}const installer=fs.readdirSync(dist).find((name)=>/^FFmpegVideoWorkbench-Setup-.*\\.exe$/i.test(name));if(installer){fs.copyFileSync(path.join(dist,installer),path.join(root,'FFmpegVideoWorkbench-Setup.exe'));console.log('Copied dist/'+installer+' -> FFmpegVideoWorkbench-Setup.exe');}\"",
+    "bring:exe": "npm run move:exe",
+    "dist:win": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 && npm run move:exe",
+    "dist:win32": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --ia32 && npm run move:exe",
+    "dist:win:all": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 --ia32 && npm run move:exe",
+    "dist:mac": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --x64",
+    "dist:mac:arm64": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --arm64",
+    "dist:mac:all": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --x64 --arm64",
+    "dist:all": "npm run dist:win:all && echo macOS release files are built in GitHub Actions or on a macOS machine with npm run dist:mac:all",
+    "dist:dir": "npm run react:build && npm run electron:build && electron-builder --dir"
+  },
+  "keywords": [
+    "electron",
+    "react",
+    "ffmpeg",
+    "video"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.8.1",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "com.frost.ffmpegvideoworkbench",
+    "productName": "FFmpegVideoWorkbench",
+    "files": [
+      "electron/**/*",
+      "ui/build/**/*",
+      "package.json"
+    ],
+    "win": {
+      "executableName": "FFmpegVideoWorkbench",
+      "artifactName": "FFmpegVideoWorkbench-Setup-${version}.${ext}",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
+    },
+    "mac": {
+      "artifactName": "FFmpegVideoWorkbench-mac-${arch}.${ext}",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "extraMetadata": {
+      "main": "electron/main.js"
+    }
+  }
+}
