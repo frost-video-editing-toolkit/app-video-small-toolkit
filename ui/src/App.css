@@ -413,3 +413,121 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Dark mode ─────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark .simple-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.dark .field-label {
+  color: #e2e8f0;
+}
+
+.dark .field-grid label {
+  color: #e2e8f0;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background: #0f172a;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark .secondary-button {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.dark .mode-button {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.dark .mode-button.active {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.dark .result-box {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .result-box.success {
+  background: #052e16;
+  border-color: #166534;
+}
+
+.dark .result-box.error {
+  background: #2d0a0a;
+  border-color: #7f1d1d;
+}
+
+.dark .progress-box {
+  background: #0c1a3a;
+  border-color: #1e40af;
+}
+
+.dark .progress-track {
+  background: #1e3a5f;
+}
+
+.dark .progress-stats {
+  color: #93c5fd;
+}
+
+.dark .muted {
+  color: #94a3b8;
+}
+
+.dark .log-table th,
+.dark .log-table td {
+  border-color: #334155;
+}
+
+.dark .log-table thead th {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+.dark .status-pill {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.dark .status-pill.success {
+  background: #052e16;
+  color: #86efac;
+  border-color: #166534;
+}
+
+.dark .status-pill.failed {
+  background: #2d0a0a;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+
+.dark .language-button {
+  background: linear-gradient(180deg, #1e293b 0%, #334155 100%);
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.dark .crop-preview-stage {
+  border-color: #475569;
+}
+
+.dark .status-line {
+  color: #f1f5f9;
+}

@@ -424,6 +424,15 @@ function App() {
   const [previewMeta, setPreviewMeta] = useState({ videoWidth: 0, videoHeight: 0, loading: false, error: '' });
   const [cropPreviewFile, setCropPreviewFile] = useState('');
   const [dragOverlay, setDragOverlay] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      return window.localStorage.getItem('video-editor-dark-mode') === '1';
+    } catch {
+      return false;
+    }
+  });
   const previewVideoRef = useRef(null);
   const previewStageRef = useRef(null);
   const dragStateRef = useRef(null);
@@ -436,7 +445,7 @@ function App() {
   const supportsFolderInput = operation === 'crop' || operation === 'trim' || operation === 'removeSilence';
   const usesOutputDirectory = operation === 'trim' || ((operation === 'crop' || operation === 'removeSilence') && inputSummary.isBatchForCrop);
   const cropPreviewInputFile = useMemo(() => {
-    if (operation !== 'crop' && operation !== 'cut') return '';
+    if (operation !== 'crop' && operation !== 'cut' && operation !== 'trim' && operation !== 'merge' && operation !== 'loop' && operation !== 'removeSilence') return '';
     return cropPreviewFile || inputSummary.primaryInputFile || '';
   }, [operation, cropPreviewFile, inputSummary.primaryInputFile]);
   const cropPreviewSrc = useMemo(() => toFileUrl(cropPreviewInputFile), [cropPreviewInputFile]);
@@ -507,7 +516,17 @@ function App() {
   }, [api]);
 
   useEffect(() => {
-    if ((operation !== 'crop' && operation !== 'cut') || inputFiles.length === 0) {
+    if (typeof window === 'undefined') return;
+
+    try {
+      window.localStorage.setItem('video-editor-dark-mode', darkMode ? '1' : '0');
+    } catch {
+      // Ignore storage errors (private mode / policy restrictions).
+    }
+  }, [darkMode]);
+
+  useEffect(() => {
+    if ((operation !== 'crop' && operation !== 'cut' && operation !== 'trim' && operation !== 'merge' && operation !== 'loop' && operation !== 'removeSilence') || inputFiles.length === 0) {
       setCropPreviewFile('');
       return;
     }
@@ -787,11 +806,14 @@ function App() {
 
   if (page === 'progress') {
     return (
-      <main className={`simple-shell app-surface lang-${language}`}>
+      <main className={`simple-shell app-surface lang-${language}${darkMode ? ' dark' : ''}`}>
         <section className="simple-card app-card">
           <div className="top-row">
             <h1>{t.processingTitle}</h1>
             <div className="inline-actions">
+              <button type="button" className="secondary-button" onClick={() => setDarkMode((v) => !v)} title={darkMode ? 'Light mode' : 'Dark mode'} aria-pressed={darkMode}>
+                {darkMode ? '☀️' : '🌙'}
+              </button>
               <button type="button" className="secondary-button" onClick={handleBackToEditor}>
                 {t.backToEditor}
               </button>
@@ -853,11 +875,15 @@ function App() {
   }
 
   return (
-    <main className={`simple-shell app-surface lang-${language}`}>
+    <main className={`simple-shell app-surface lang-${language}${darkMode ? ' dark' : ''}`}>
       <section className="simple-card app-card">
         <div className="top-row">
           <h1>{t.title}</h1>
-          <div className="inline-actions language-selector" aria-label="Language selector">
+          <div className="inline-actions">
+            <button type="button" className="secondary-button" onClick={() => setDarkMode((v) => !v)} title={darkMode ? 'Light mode' : 'Dark mode'} aria-pressed={darkMode}>
+              {darkMode ? '☀️' : '🌙'}
+            </button>
+            <div className="inline-actions language-selector" aria-label="Language selector">
             {LANGUAGE_OPTIONS.map((option) => (
               <button
                 key={option.code}
@@ -872,6 +898,7 @@ function App() {
                 <span className="language-button-text">{option.shortLabel}</span>
               </button>
             ))}
+            </div>
           </div>
         </div>
 
@@ -985,10 +1012,10 @@ function App() {
           </div>
         )}
 
-        {(operation === 'crop' || operation === 'cut') && (
+        {(operation === 'crop' || operation === 'cut' || operation === 'trim' || operation === 'merge' || operation === 'loop' || operation === 'removeSilence') && (
           <div className="result-box crop-preview-box">
-            <h2>{operation === 'cut' ? t.cutPreviewTitle : t.cropPreviewTitle}</h2>
-            <p className="muted">{operation === 'cut' ? t.cutPreviewHint : t.cropPreviewHint}</p>
+            <h2>{operation === 'cut' ? t.cutPreviewTitle : operation === 'trim' ? t.trimPreviewTitle : operation === 'merge' ? t.mergePreviewTitle : operation === 'loop' ? t.loopPreviewTitle : operation === 'removeSilence' ? t.removeSilencePreviewTitle : t.cropPreviewTitle}</h2>
+            <p className="muted">{operation === 'cut' ? t.cutPreviewHint : operation === 'trim' ? t.trimPreviewHint : operation === 'merge' ? t.mergePreviewHint : operation === 'loop' ? t.loopPreviewHint : operation === 'removeSilence' ? t.removeSilencePreviewHint : t.cropPreviewHint}</p>
 
             {!cropPreviewSrc && <p className="muted">{t.cropPreviewNoFile}</p>}
 
