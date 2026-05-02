@@ -1,5 +1,5 @@
 {
-  "name": "editing-video-app",
+  "name": "video-editing-app",
   "version": "1.0.0",
   "description": "Electron video toolkit powered by FFmpeg",
   "author": "Frost",
@@ -11,11 +11,11 @@
     "electron:watch": "tsc -w -p electron/tsconfig.json",
     "start": "npm run electron:build && electron .",
     "dev": "concurrently \"npm run react:start\" \"npm run electron:watch\" \"wait-on tcp:3000 electron/dist/preload.js && set ELECTRON_START_URL=http://localhost:3000 && electron .\"",
-    "move:exe": "node -e \"const fs=require('fs');const path=require('path');const root=process.cwd();const dist=path.join(root,'dist');if(!fs.existsSync(dist)) process.exit(0);for(const name of ['FFmpegVideoWorkbench-Setup.exe']){const target=path.join(root,name);if(fs.existsSync(target)) fs.rmSync(target,{force:true});}const installer=fs.readdirSync(dist).find((name)=>/^FFmpegVideoWorkbench-Setup-.*\\.exe$/i.test(name));if(installer){fs.copyFileSync(path.join(dist,installer),path.join(root,'FFmpegVideoWorkbench-Setup.exe'));console.log('Copied dist/'+installer+' -> FFmpegVideoWorkbench-Setup.exe');}\"",
+    "move:exe": "node -e \"const fs=require('fs');const path=require('path');const root=process.cwd();const dist=path.join(root,'dist');if(!fs.existsSync(dist)) process.exit(0);for(const name of ['VideoEditingApp-x64.exe','VideoEditingApp-x86.exe']){const target=path.join(root,name);if(fs.existsSync(target)) fs.rmSync(target,{force:true});}const artifacts=fs.readdirSync(dist).filter((name)=>/^VideoEditingApp-(x64|x86)\\.exe$/i.test(name));for(const name of artifacts){fs.copyFileSync(path.join(dist,name),path.join(root,name));console.log('Copied dist/'+name+' -> '+name);}\"",
     "bring:exe": "npm run move:exe",
-    "dist:win": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 && npm run move:exe",
-    "dist:win32": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --ia32 && npm run move:exe",
-    "dist:win:all": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 --ia32 && npm run move:exe",
+    "dist:win": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 -c.win.executableName=VideoEditingApp-x64 -c.win.artifactName=VideoEditingApp-x64.${ext} && npm run move:exe",
+    "dist:win32": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --ia32 -c.win.executableName=VideoEditingApp-x86 -c.win.artifactName=VideoEditingApp-x86.${ext} && npm run move:exe",
+    "dist:win:all": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 -c.win.executableName=VideoEditingApp-x64 -c.win.artifactName=VideoEditingApp-x64.${ext} && electron-builder --publish never --win nsis --ia32 -c.win.executableName=VideoEditingApp-x86 -c.win.artifactName=VideoEditingApp-x86.${ext} && npm run move:exe",
     "dist:mac": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --x64",
     "dist:mac:arm64": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --arm64",
     "dist:mac:all": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --x64 --arm64",
@@ -38,16 +38,16 @@
     "wait-on": "^9.0.4"
   },
   "build": {
-    "appId": "com.frost.ffmpegvideoworkbench",
-    "productName": "FFmpegVideoWorkbench",
+    "appId": "com.frost.videoeditingapp",
+    "productName": "VideoEditingApp",
     "files": [
       "electron/**/*",
       "ui/build/**/*",
       "package.json"
     ],
     "win": {
-      "executableName": "FFmpegVideoWorkbench",
-      "artifactName": "FFmpegVideoWorkbench-Setup-${version}.${ext}",
+      "executableName": "VideoEditingApp",
+      "artifactName": "VideoEditingApp-${version}.${ext}",
       "target": [
         {
           "target": "nsis",
@@ -59,7 +59,7 @@
       ]
     },
     "mac": {
-      "artifactName": "FFmpegVideoWorkbench-mac-${arch}.${ext}",
+      "artifactName": "VideoEditingApp-mac-${arch}.${ext}",
       "target": [
         {
           "target": "dmg",
