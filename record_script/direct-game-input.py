@@ -245,17 +245,7 @@ class DirectGameInput:
                 else:
                     print(f"[{current_time}] All methods failed")
                     print("Exiting due to repeated failures.")
-                    time.sleep(5)
                     exit(1)
-
-                # 1500 count equals approx 2 hours at 5 sec interval
-                if self.action_count >= 1500 * (count + 1):
-                    count += 1
-
-                    print("=== PAUSE FOR BREAK ===")
-                    print("Reached 1500 actions, pausing. Press 'Enter' to continue...")
-                    print("")
-                    input()
                 
                 time.sleep(self.interval)
                 
