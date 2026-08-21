@@ -1,28 +1,28 @@
 # FFmpeg Video Workbench
 
-**日本語版 README** です。英語版は [`README.en.md`](./README.en.md) を参照してください。
+English README. Japanese version: [`README.md`](./README.md)
 
 ---
 
-## 概要
-`React + Electron` の UI から動画処理を実行するデスクトップアプリです。  
-動画処理は **Node.js / TypeScript から `ffmpeg` コマンドを呼び出す構成**で、実行時に Python は不要です。
+## Overview
+A desktop app for running video processing tasks from a **React + Electron** UI.  
+All video work is executed by `ffmpeg` commands called from the Electron main process (TypeScript). No Python required at runtime.
 
 > [!WARNING]
-> **このアプリは `ffmpeg` が使える環境でないと動作しません。**  
-> 初回起動前に、必ず `ffmpeg` を `PATH` に追加するか、`FFMPEG_PATH` を設定してください。
+> **This app will not work unless `ffmpeg` is available on the machine.**  
+> Before running it, make sure `ffmpeg` is added to your `PATH` or set via `FFMPEG_PATH`.
 
-## UI から実行できる処理
-| 操作 | 説明 |
+## Operations available in the UI
+| Operation | Description |
 |---|---|
-| **Crop** | 指定した X/Y/W/H で動画を切り抜く（1ファイル・複数ファイル・フォルダ対応） |
-| **Cut** | 開始〜終了時間で1本を切り出す |
-| **Trim** | 指定間隔で動画を自動分割する |
-| **Merge** | 複数の mp4 を順番に連結する |
-| **Loop** | 同一動画を指定回数繰り返して書き出す |
-| **RemoveSilence** | 無音区間を検出・削除する |
+| **Crop** | Crop by X/Y/W/H — supports single file, multiple files, or a folder |
+| **Cut** | Extract a clip between start and end time |
+| **Trim** | Auto-split a video by a fixed interval |
+| **Merge** | Concatenate multiple mp4 files in order |
+| **Loop** | Repeat a single video a specified number of times |
+| **RemoveSilence** | Detect and remove silent parts for faster pacing |
 
-## アーキテクチャ
+## Architecture
 ```text
 React UI (Renderer)
         ↓ IPC
@@ -30,109 +30,108 @@ Electron Main Process (TypeScript)
         ↓ child_process.spawn()
 ffmpeg command
         ↓
-処理済み動画 (.mp4)
+processed .mp4 output
 ```
 
-## セットアップ
+## Setup
 ```bash
 npm install
 npm --prefix ui install
 ```
 
-## 最初に確認すること
-このアプリは `ffmpeg` コマンドを直接利用します。  
-**`ffmpeg` が未導入のままだと、動画の切り抜き・切り出し・結合などは実行できません。**
+## First thing to check
+This app directly depends on the `ffmpeg` command.  
+**If `ffmpeg` is not installed and available, crop/cut/merge and the other video actions will fail.**
 
-## ffmpeg の準備
-このアプリは `ffmpeg` コマンドを使用します。次のいずれかで利用可能にしてください。
+## ffmpeg requirement
+Make sure `ffmpeg` is available in one of these ways:
 
-1. `ffmpeg` を PATH に追加する
-2. または `FFMPEG_PATH` 環境変数で実行ファイルのパスを指定する
+1. Added to your system `PATH`
+2. Or set through the `FFMPEG_PATH` environment variable
 
 ```powershell
 $env:FFMPEG_PATH = "C:\ffmpeg\bin\ffmpeg.exe"
 ```
 
-### すぐ使うためのコマンド集（Windows PowerShell）
+### Quick command list (Windows PowerShell)
 
-#### 1. winget で ffmpeg を入れる
+#### 1. Install ffmpeg with winget
 ```powershell
 winget install --id Gyan.FFmpeg -e
 ffmpeg -version
 ```
 
-#### 2. ffmpeg.exe の場所を直接指定する
+#### 2. Point directly to ffmpeg.exe
 ```powershell
 $env:FFMPEG_PATH = "C:\ffmpeg\bin\ffmpeg.exe"
 ffmpeg -version
 ```
 
-#### 3. 認識されているか確認する
+#### 3. Verify that it is available
 ```powershell
 ffmpeg -version
 where.exe ffmpeg
 ```
 
-> `ffmpeg` が見つからない場合は、VS Code やターミナルを再起動してください。
+> If `ffmpeg` is still not recognized, restart VS Code or your terminal.
 
-### バッチファイルでセットアップする
-Windows ユーザー向けに、すぐ配布できるバッチファイルも用意しています。
+### Setup with a batch file
+A distributable Windows helper is also included:
 
 - [setup-ffmpeg-windows.bat](setup-ffmpeg-windows.bat)
 
-このファイルを実行すると、`ffmpeg` の確認、`winget` による導入、`FFMPEG_PATH` の保存をまとめて案内できます。
+Running this file will guide users through checking `ffmpeg`, installing it with `winget`, and saving `FFMPEG_PATH` if needed.
 
-## 開発起動
+## Run in development
 ```bash
 npm run dev
 ```
 
-## 本番ビルド済み UI で起動
+## Run with the built UI
 ```bash
 npm run react:build
 npm run start
 ```
 
-## 主なコマンド
-| コマンド | 説明 |
+## Main scripts
+| Command | Description |
 |---|---|
-| `npm run dev` | React 開発サーバー + Electron + TypeScript watch を同時起動 |
-| `npm run electron:build` | Electron 側 TypeScript をビルド |
-| `npm run react:build` | React UI を本番ビルド |
-| `npm run start` | ビルド済み UI を Electron で起動 |
-| `npm run dist:win` | Windows 向け x64 インストーラーを作成 |
-| `npm run dist:win:all` | Windows 向け x64 + ia32 インストーラーを作成 |
-| `npm run dist:mac` | macOS 向けパッケージを作成 |
-| `npm run dist:dir` | インストーラーなしの展開済みフォルダを作成（動作確認用） |
+| `npm run dev` | Start React dev server + Electron + TypeScript watch together |
+| `npm run electron:build` | Compile the Electron TypeScript files |
+| `npm run react:build` | Build the renderer UI for production |
+| `npm run start` | Launch Electron with the built UI |
+| `npm run dist:win` | Build a Windows x64 installer |
+| `npm run dist:win:all` | Build Windows x64 + ia32 installers |
+| `npm run dist:mac` | Build a macOS package |
+| `npm run dist:dir` | Build an unpacked directory (for quick testing) |
 
 ---
 
-## ====record_script（別途ダウンロード・実行）====
-`record_script/` はデスクトップアプリとは独立した **Python スクリプト**です。  
-ツクールゲームなどの録画を行うためのEnterキー自動押下でのページ送り等に活用できます。
+## record_script (separate download and run)
+`record_script/` is a standalone **Python script**, independent of the desktop app.  
+Use it when you need to send automatic key inputs to a game window — for example, while recording a game.
 
-
-### ダウンロード
-
-リポジトリから `record_script/` フォルダごとダウンロードしてください。
+### Download
+Download the `record_script/` folder from the repository.
 
 ```
 record_script/
-├── direct-game-input.py   # メインスクリプト
-├── requirements.txt       # 依存パッケージ
-└── README.md              # 詳細な使い方
+├── direct-game-input.py   # main script
+├── requirements.txt       # dependencies
+└── README.md              # detailed usage
 ```
 
-### 依存パッケージのインストール
+### Install dependencies
 ```bash
 pip install -r record_script/requirements.txt
 ```
 
-### 実行
+### Run
 ```bash
 python record_script/direct-game-input.py
 ```
 
-> **注意**: Windows 専用です。管理者権限が必要な場合があります。  
-> 詳細は [`record_script/README.md`](./record_script/README.md) を参照してください。
+> **Note**: Windows only. Administrator privileges may be required.  
+> See [`record_script/README.md`](./record_script/README.md) for full details.
+
 
