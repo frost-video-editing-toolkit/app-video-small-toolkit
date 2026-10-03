@@ -1,43 +1,67 @@
 # FFmpeg Video Workbench
 
-**日本語版 README** です。英語版は [`README.en.md`](./README.en.md) を参照してください。
+**日本語版 README** です。英語版は [`README.md`](./README.md) を参照してください。
 
 ---
 
 ## 概要
-`React + Electron` の UI から動画処理を実行するデスクトップアプリです。  
-動画処理は **Node.js / TypeScript から `ffmpeg` コマンドを呼び出す構成**で、実行時に Python は不要です。
+`React + Tauri` の UI から動画処理を実行するデスクトップアプリです。
+動画処理は Tauri 経由で Go ワーカーに渡し、Go から `ffmpeg` コマンドを呼び出します。実行時に Python は不要です。
 
 > [!WARNING]
 > **このアプリは `ffmpeg` が使える環境でないと動作しません。**  
 > 初回起動前に、必ず `ffmpeg` を `PATH` に追加するか、`FFMPEG_PATH` を設定してください。
 
-## UI から実行できる処理
+## 主な機能
+
+- Python を実行時に必要とせず、デスクトップ UI から FFmpeg の動画処理を実行できます。
+- 対応する処理では、1本の動画・複数の動画・フォルダ単位で入力できます。
+- 出力ファイルまたは出力フォルダを指定し、処理後の保存先を確認できます。
+- 処理の進捗表示、実行中のキャンセル、タイムスタンプ付きの実行履歴に対応しています。
+- UI の表示言語を日本語・英語・ドイツ語から切り替えられます。
+
+## 動画処理の一覧
 | 操作 | 説明 |
 |---|---|
-| **Crop** | 指定した X/Y/W/H で動画を切り抜く（1ファイル・複数ファイル・フォルダ対応） |
-| **Cut** | 開始〜終了時間で1本を切り出す |
-| **Trim** | 指定間隔で動画を自動分割する |
-| **Merge** | 複数の mp4 を順番に連結する |
-| **Loop** | 同一動画を指定回数繰り返して書き出す |
-| **RemoveSilence** | 無音区間を検出・削除する |
+| **Crop（切り抜き）** | X/Y/W/H を指定して動画を切り抜きます。1本・複数本・フォルダに対応します。 |
+| **Cut（切り出し）** | 開始時間から終了時間までを1本の動画から切り出します。 |
+| **Trim（分割）** | 指定した間隔で動画を自動分割します。 |
+| **Merge（結合）** | 複数の mp4 を選択した順番で連結します。 |
+| **Loop（繰り返し）** | 1本の動画を指定回数繰り返して書き出します。 |
+| **RemoveSilence（無音除去）** | 無音区間を検出・削除し、テンポのよい動画にします。 |
+
+通常は、処理内容のサフィックスとタイムスタンプを付けた `.mp4` ファイルとして出力します。
 
 ## アーキテクチャ
 ```text
-React UI (Renderer)
-        ↓ IPC
-Electron Main Process (TypeScript)
-        ↓ child_process.spawn()
+React UI
+        ↓ Tauri command
+Tauri host (Rust)
+        ↓ Go worker
 ffmpeg command
         ↓
 処理済み動画 (.mp4)
 ```
+
+## 技術選定理由
+
+| 技術 | 役割 | 選定理由 |
+|---|---|---|
+| **React** | デスクトップUI | 既存のUI資産を活用でき、コンポーネント単位で整理・テストしやすいためです。 |
+| **Tauri** | デスクトップシェル・ネイティブ連携 | システムのWebViewを利用するためElectronよりアプリを軽量化でき、Rustを介してファイル選択やワーカープロセスを安全に扱えるためです。 |
+| **Rust** | Tauriホストプロセス | OS連携、コマンド呼び出し、パッケージ内リソースへのアクセスを、コンパイル時の型チェック付きで実装できるためです。 |
+| **Go** | 動画処理ワーカー | 外部プロセスの管理が簡潔で、独立した動画処理を上限付きで並列化しやすいためです。 |
+| **FFmpeg** | 動画処理エンジン | コーデックやフィルターを自作せず、実績のある広範な動画処理機能を利用できるためです。 |
+
+複数動画の独立した処理はGo側で並列化し、コーデック単位のマルチスレッド処理はFFmpegに任せます。CPUやストレージを過剰に使用しないよう、同時実行数には上限を設けます。一方で、開発・パッケージングにはRustとGoの両方が必要で、FFmpegも `PATH`、`FFMPEG_PATH`、または同梱環境から利用できる必要があります。
 
 ## セットアップ
 ```bash
 npm install
 npm --prefix ui install
 ```
+
+Tauri の開発には、Rust・Cargo・Go が `PATH` から実行できる必要があります。
 
 ## 最初に確認すること
 このアプリは `ffmpeg` コマンドを直接利用します。  
@@ -84,26 +108,21 @@ Windows ユーザー向けに、すぐ配布できるバッチファイルも用
 
 ## 開発起動
 ```bash
-npm run dev
+npm run tauri:dev
 ```
 
 ## 本番ビルド済み UI で起動
 ```bash
-npm run react:build
-npm run start
+npm run tauri:build
 ```
 
 ## 主なコマンド
 | コマンド | 説明 |
 |---|---|
-| `npm run dev` | React 開発サーバー + Electron + TypeScript watch を同時起動 |
-| `npm run electron:build` | Electron 側 TypeScript をビルド |
+| `npm run tauri:dev` | React 開発サーバーとTauriデスクトップアプリを起動 |
+| `npm run worker:build` | Go製FFmpegワーカーをWindows向けにビルド |
 | `npm run react:build` | React UI を本番ビルド |
-| `npm run start` | ビルド済み UI を Electron で起動 |
-| `npm run dist:win` | Windows 向け x64 インストーラーを作成 |
-| `npm run dist:win:all` | Windows 向け x64 + ia32 インストーラーを作成 |
-| `npm run dist:mac` | macOS 向けパッケージを作成 |
-| `npm run dist:dir` | インストーラーなしの展開済みフォルダを作成（動作確認用） |
+| `npm run tauri:build` | GoワーカーとTauriアプリをビルド |
 
 ---
 

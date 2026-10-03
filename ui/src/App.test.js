@@ -12,13 +12,15 @@ test('renders current heading and primary action', () => {
   ).toBeInTheDocument();
 });
 
-test('shows operation tabs for crop, trim, merge and loop', () => {
+test('shows operation options for crop, trim, merge and loop', () => {
   render(<App />);
 
-  expect(screen.getByRole('button', { name: /crop|切り抜き/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /trim|分割/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /merge|結合/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /loop|繰り返し/i })).toBeInTheDocument();
+  const operationSelect = screen.getByLabelText(/operation|操作/i);
+  expect(operationSelect).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: /crop|切り抜き/i })).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: /trim|分割/i })).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: /merge|結合/i })).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: /loop|繰り返し/i })).toBeInTheDocument();
 });
 
 test('uses Japanese labels by default for primary controls', () => {
@@ -57,7 +59,7 @@ test('shows flag buttons and can switch to German', () => {
 test('shows input files field on the trim tab', () => {
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: /trim|分割/i }));
+  fireEvent.change(screen.getByLabelText(/operation|操作/i), { target: { value: 'trim' } });
 
   expect(screen.getByLabelText(/input files|入力ファイル/i)).toBeInTheDocument();
 });
@@ -65,7 +67,7 @@ test('shows input files field on the trim tab', () => {
 test('shows a preview panel on the cut tab', () => {
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: /cut|切り出し/i }));
+  fireEvent.change(screen.getByLabelText(/operation|操作/i), { target: { value: 'cut' } });
   fireEvent.change(screen.getByLabelText(/input files|入力ファイル/i), {
     target: { value: 'C:\\videos\\input.mp4' },
   });
@@ -263,7 +265,7 @@ test('shows progress updates for non-crop jobs', async () => {
 
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: /cut|切り出し/i }));
+  fireEvent.change(screen.getByLabelText(/operation|操作/i), { target: { value: 'cut' } });
   fireEvent.change(screen.getByLabelText(/input files|入力ファイル/i), {
     target: { value: 'C:\\videos\\input.mp4' },
   });
@@ -326,7 +328,7 @@ test('formats legacy JST logs with the selected timezone and hides the JST suffi
 test('shows input folder controls on the trim tab', () => {
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: /trim|分割/i }));
+  fireEvent.change(screen.getByLabelText(/operation|操作/i), { target: { value: 'trim' } });
 
   expect(screen.getByLabelText(/input folder|入力フォルダ/i)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /choose input folder|入力フォルダを選択/i })).toBeInTheDocument();
@@ -356,7 +358,7 @@ test('removeSilence can run with folder input like crop', async () => {
 
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: /removeSilence|無音除去/i }));
+  fireEvent.change(screen.getByLabelText(/operation|操作/i), { target: { value: 'removeSilence' } });
   fireEvent.click(screen.getByRole('button', { name: /choose input folder|入力フォルダを選択/i }));
 
   await waitFor(() => {

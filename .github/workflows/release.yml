@@ -45,37 +45,35 @@ jobs:
         with:
           node-version: 20
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install root dependencies
         run: npm install
 
       - name: Install UI dependencies
         run: npm --prefix ui install
 
-      - name: Build Windows packages
-        run: npm run dist:win:all
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Build Windows application
+        run: npm run tauri:build
 
       - name: Collect Windows assets
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force release-assets | Out-Null
-          Copy-Item "STR-Setup.exe" "release-assets/STR-Setup.exe" -Force
-          if (Test-Path "dist/win-unpacked") {
-            Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "release-assets/STR-x64-portable.zip" -Force
-          }
-          if (Test-Path "dist/win-ia32-unpacked") {
-            Compress-Archive -Path "dist/win-ia32-unpacked/*" -DestinationPath "release-assets/STR-ia32-portable.zip" -Force
-          }
+          Copy-Item "src-tauri/target/release/video-workbench.exe" "release-assets/video-workbench-windows-x64.exe" -Force
 
       - name: Upload Windows assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           files: |
-            release-assets/STR-Setup.exe
-            release-assets/STR-x64-portable.zip
-            release-assets/STR-ia32-portable.zip
+            release-assets/video-workbench-windows-x64.exe
           fail_on_unmatched_files: true
 
   build-macos:
@@ -98,26 +96,26 @@ jobs:
       - name: Install UI dependencies
         run: npm --prefix ui install
 
-      - name: Build macOS packages
-        run: npm run dist:mac:all
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build macOS application
+        run: npm run tauri:build
 
       - name: Collect macOS assets
         run: |
           mkdir -p release-assets
-          cp dist/STR-mac-x64.dmg release-assets/STR-mac-x64.dmg
-          cp dist/STR-mac-arm64.dmg release-assets/STR-mac-arm64.dmg
-          cp dist/STR-mac-x64.zip release-assets/STR-mac-x64.zip
-          cp dist/STR-mac-arm64.zip release-assets/STR-mac-arm64.zip
+          cp src-tauri/target/release/video-workbench release-assets/video-workbench-macos
 
       - name: Upload macOS assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           files: |
-            release-assets/STR-mac-x64.dmg
-            release-assets/STR-mac-arm64.dmg
-            release-assets/STR-mac-x64.zip
-            release-assets/STR-mac-arm64.zip
+            release-assets/video-workbench-macos
           fail_on_unmatched_files: true

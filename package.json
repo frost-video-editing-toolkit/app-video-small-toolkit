@@ -1,102 +1,27 @@
 {
   "name": "video-editing-toolkit",
   "version": "1.0.0",
-  "description": "Electron video toolkit powered by FFmpeg",
+  "description": "Tauri and Go video toolkit powered by FFmpeg",
   "author": "Frost",
-  "main": "electron/main.js",
   "scripts": {
     "react:start": "npm --prefix ui start",
     "react:build": "npm --prefix ui run build",
-    "electron:build": "node -e \"const fs=require('fs');const path=require('path');const src=path.join(process.cwd(),'electron');const dst=path.join(src,'dist');fs.mkdirSync(dst,{recursive:true});['main.js','preload.js'].forEach(f=>{const s=path.join(src,f);const d=path.join(dst,f);if(fs.existsSync(s)){fs.copyFileSync(s,d);console.log('copied',f)}else{console.warn('missing',f)}})\"",
-    "electron:watch": "node -e \"const fs=require('fs');const path=require('path');const src=path.join(process.cwd(),'electron');const dst=path.join(src,'dist');fs.mkdirSync(dst,{recursive:true});['main.js','preload.js'].forEach(f=>{const s=path.join(src,f);const d=path.join(dst,f);if(fs.existsSync(s)){fs.copyFileSync(s,d);console.log('copied',f)}else{console.warn('missing',f)}})\"",
-    "start": "npm run electron:build && electron .",
-    "dev": "concurrently \"npm run react:start\" \"npm run electron:watch\" \"wait-on tcp:3000 electron/dist/preload.js && set ELECTRON_START_URL=http://localhost:3000 && electron .\"",
-    "move:exe": "node -e \"const fs=require('fs');const path=require('path');const root=process.cwd();const dist=path.join(root,'dist');if(!fs.existsSync(dist)) process.exit(0);for(const name of ['VideoEditingToolkit-x64.exe','VideoEditingToolkit-x86.exe']){const target=path.join(root,name);if(fs.existsSync(target)) fs.rmSync(target,{force:true});}const artifacts=fs.readdirSync(dist).filter((name)=>/^VideoEditingToolkit-(x64|x86)\\.exe$/i.test(name));for(const name of artifacts){fs.copyFileSync(path.join(dist,name),path.join(root,name));console.log('Copied dist/'+name+' -> '+name);}\"",
-    "bring:exe": "npm run move:exe",
-    "kill-running": "node ./scripts/kill-running.js",
-    "rename-unpacked-exes": "node ./scripts/rename-unpacked-exes.js",
+    "worker:build": "node scripts/build-worker.js",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "npm run worker:build && npm run react:build && tauri build",
     "check-ffmpeg": "node ./scripts/check-ffmpeg.js",
-    "predist:win": "npm run kill-running",
-    "dist:win": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 -c.win.executableName=VideoEditingToolkit-x64 -c.win.artifactName=VideoEditingToolkit-x64.${ext} && npm run move:exe",
-    "predist:win32": "npm run kill-running",
-    "dist:win32": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --ia32 -c.win.executableName=VideoEditingToolkit-x86 -c.win.artifactName=VideoEditingToolkit-x86.${ext} && npm run move:exe",
-    "predist:win:all": "npm run kill-running",
-    "dist:win:all": "npm run react:build && npm run electron:build && electron-builder --publish never --win nsis --x64 -c.win.executableName=VideoEditingToolkit-x64 -c.win.artifactName=VideoEditingToolkit-x64.${ext} && electron-builder --publish never --win nsis --ia32 -c.win.executableName=VideoEditingToolkit-x86 -c.win.artifactName=VideoEditingToolkit-x86.${ext} && npm run move:exe",
-    "dist:mac": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --x64",
-    "dist:mac:arm64": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --arm64",
-    "dist:mac:all": "npm run react:build && npm run electron:build && electron-builder --publish never --mac --x64 --arm64",
-    "dist:all": "npm run dist:win:all && echo macOS release files are built in GitHub Actions or on a macOS machine with npm run dist:mac:all",
-    "dist:dir": "npm run react:build && npm run electron:build && electron-builder --dir"
+    "test": "npm --prefix ui test -- --watchAll=false",
+    "test:integration": "node test/worker-integration.js"
   },
   "keywords": [
-    "electron",
+    "tauri",
+    "go",
     "react",
     "ffmpeg",
     "video"
   ],
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^24.7.2",
-    "concurrently": "^9.2.1",
-    "electron": "^39.2.7",
-    "electron-builder": "^26.8.1",
-    "typescript": "^5.9.3",
-    "wait-on": "^9.0.4"
-  },
-  "build": {
-    "appId": "com.frost.appvideosmalltoolkit",
-    "productName": "VideoEditingToolkit",
-    "files": [
-      "electron/**/*",
-      "ui/build/**/*",
-      "package.json",
-      "bin/**/*"
-    ],
-    "asarUnpack": [
-      "**/ffmpeg*.dll",
-      "**/ffprobe*.exe",
-      "electron/ffmpeg/**",
-      "bin/ffmpeg/**"
-    ],
-    "win": {
-      "executableName": "VideoEditingToolkit",
-      "artifactName": "VideoEditingToolkit-${version}.${ext}",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
-      ]
-    },
-    "mac": {
-      "artifactName": "VideoEditingToolkit-mac-${arch}.${ext}",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true
-    },
-    "extraMetadata": {
-      "main": "electron/main.js"
-    }
+    "@tauri-apps/cli": "^2.12.1"
   }
 }

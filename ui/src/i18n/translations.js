@@ -2,6 +2,7 @@ export const I18N = {
   ja: {
     title: '動画ツール',
     subtitle: '操作を選んで実行します（切り抜き / 切り出し / 分割 / 結合 / 繰り返し / 無音除去）。',
+    operationLabel: '操作',
     browseFiles: 'ファイルを参照',
     chooseInput: 'ファイルを選択',
     chooseInputFolder: '入力フォルダを選択',
@@ -76,6 +77,7 @@ export const I18N = {
   en: {
     title: 'Video Tools',
     subtitle: 'Select an operation (crop / cut / trim / merge / loop / removeSilence).',
+    operationLabel: 'Operation',
     browseFiles: 'Browse files',
     chooseInput: 'Choose files',
     chooseInputFolder: 'Choose input folder',
@@ -150,6 +152,7 @@ export const I18N = {
   de: {
     title: 'Video-Tools',
     subtitle: 'Wähle eine Aktion aus (Zuschneiden / Ausschneiden / Teilen / Zusammenfügen / Wiederholen / Stille entfernen).',
+    operationLabel: 'Aktion',
     browseFiles: 'Dateien durchsuchen',
     chooseInput: 'Dateien auswählen',
     chooseInputFolder: 'Eingabeordner wählen',

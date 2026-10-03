@@ -3,7 +3,6 @@ const path = require('path');
 
 const root = process.cwd();
 const candidates = [
-  path.join(root, 'electron', 'ffmpeg'),
   path.join(root, 'bin', 'ffmpeg'),
   path.join(root, 'bin')
 ];
@@ -19,7 +18,7 @@ for (const dir of candidates) {
 }
 
 if (!found) {
-  console.warn('\nNo ffmpeg binaries found in expected locations.\nRecommended locations: electron/ffmpeg/ or bin/ffmpeg/.\nPlace platform binaries (ffmpeg.dll on Windows, ffmpeg on macOS/Linux) there before packaging.\nElectron-builder will unpack matching files from asar so they are available at runtime.');
+  console.warn('\nNo ffmpeg binaries found in expected locations.\nRecommended location: bin/ffmpeg/.\nPlace platform binaries there before packaging, or make ffmpeg available through PATH or FFMPEG_PATH.');
 }
 else {
   console.log('FFmpeg check passed.');

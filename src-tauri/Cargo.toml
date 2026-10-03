@@ -1,0 +1,16 @@
+[package]
+name = "video-workbench"
+version = "1.0.0"
+description = "FFmpeg video workbench"
+authors = ["Frost"]
+edition = "2021"
+
+[dependencies]
+serde_json = "1"
+rfd = "0.15"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+tauri = { version = "2", features = [] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

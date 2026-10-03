@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LANGUAGE_OPTIONS } from './i18n/languageOptions';
 import { I18N } from './i18n/translations';
+import { tauriVideoEditor } from './tauriVideoEditor';
 import './App.css';
 
 const OPERATION_DETAILS = {
@@ -73,7 +74,7 @@ const browserPreviewApi = {
     success: false,
     command: '',
     stdout: '',
-    stderr: 'Electron 経由でアプリを起動してから実行してください。',
+    stderr: 'Tauri 経由でアプリを起動してから実行してください。',
     scriptMessage: 'browser-preview: 実行できません。',
   }),
 };
@@ -393,6 +394,9 @@ function App() {
   const api = useMemo(() => {
     if (typeof window !== 'undefined' && window.videoEditor) {
       return window.videoEditor;
+    }
+    if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
+      return tauriVideoEditor;
     }
     return browserPreviewApi;
   }, []);
@@ -904,29 +908,33 @@ function App() {
 
         <p className="muted">{t.subtitle}</p>
 
-        <div className="mode-buttons">
+        <label className="field-label" htmlFor="operation-select">{t.operationLabel}</label>
+        <select
+          id="operation-select"
+          value={operation}
+          onChange={(event) => {
+            const key = event.target.value;
+            setOperation(key);
+
+            if (key === 'trim' || ((key === 'crop' || key === 'removeSilence') && inputSummary.isBatchForCrop)) {
+              if (!outputDirectory.trim()) {
+                setOutputDirectory(buildDefaultOutputDirectory(inputFiles));
+              }
+              return;
+            }
+
+            setOutputFile(buildDefaultOutputPath(key, inputFiles, toNumber(repeatCount, 3)));
+          }}
+        >
           {Object.entries(OPERATION_DETAILS).map(([key, item]) => (
-            <button
+            <option
               key={key}
-              type="button"
-              className={`mode-button ${operation === key ? 'active' : ''}`}
-              onClick={() => {
-                setOperation(key);
-
-                if (key === 'trim' || ((key === 'crop' || key === 'removeSilence') && inputSummary.isBatchForCrop)) {
-                  if (!outputDirectory.trim()) {
-                    setOutputDirectory(buildDefaultOutputDirectory(inputFiles));
-                  }
-                  return;
-                }
-
-                setOutputFile(buildDefaultOutputPath(key, inputFiles, toNumber(repeatCount, 3)));
-              }}
+              value={key}
             >
               {item.label[language]}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
 
         <p className="muted">{details.description[language]}</p>
 
