@@ -55,6 +55,33 @@ func TestCommandArgs(t *testing.T) {
 	}
 }
 
+func TestMediaCommandArgs(t *testing.T) {
+	convertArgs, err := commandArgs(Job{Kind: "convert", VideoCodec: "h264", VideoBitrate: "5M"}, "input.mov", "output.mp4")
+	if err != nil || !containsArgs(convertArgs, "-c:v", "libx264", "-b:v", "5M") {
+		t.Fatalf("convert commandArgs() = %#v, error = %v", convertArgs, err)
+	}
+
+	resizeArgs, err := commandArgs(Job{Kind: "resize", ResizeWidth: 1080, ResizeHeight: 1920}, "input.mp4", "output.mp4")
+	if err != nil || !containsArgs(resizeArgs, "scale=1080:1920") {
+		t.Fatalf("resize commandArgs() = %#v, error = %v", resizeArgs, err)
+	}
+
+	speedArgs, err := commandArgs(Job{Kind: "speed", Speed: 0.5}, "input.mp4", "output.mp4")
+	if err != nil || !containsArgs(speedArgs, "setpts=PTS/0.500", "atempo=0.500") {
+		t.Fatalf("speed commandArgs() = %#v, error = %v", speedArgs, err)
+	}
+}
+
+func containsArgs(args []string, expected ...string) bool {
+	joined := strings.Join(args, " ")
+	for _, value := range expected {
+		if !strings.Contains(joined, value) {
+			return false
+		}
+	}
+	return true
+}
+
 func TestMakeBatchOutputsAvoidsDuplicateNames(t *testing.T) {
 	root := t.TempDir()
 	inputs := []string{

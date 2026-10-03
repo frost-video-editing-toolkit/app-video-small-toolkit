@@ -11,7 +11,7 @@
     "tauri:build": "npm run worker:build && npm run react:build && tauri build",
     "check-ffmpeg": "node ./scripts/check-ffmpeg.js",
     "test": "npm --prefix ui test -- --watchAll=false",
-    "test:integration": "node test/worker-integration.js"
+    "test:integration": "node test/integration-test.js"
   },
   "keywords": [
     "tauri",

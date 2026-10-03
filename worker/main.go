@@ -29,6 +29,27 @@ type Job struct {
 	Crop               Crop     `json:"crop"`
 	NoiseThresholdDb   float64  `json:"noiseThresholdDb"`
 	MinSilenceDuration float64  `json:"minSilenceDuration"`
+	OutputFormat       string   `json:"outputFormat"`
+	VideoCodec         string   `json:"videoCodec"`
+	VideoBitrate       string   `json:"videoBitrate"`
+	ResizePreset       string   `json:"resizePreset"`
+	ResizeWidth        int      `json:"resizeWidth"`
+	ResizeHeight       int      `json:"resizeHeight"`
+	AudioVolume        float64  `json:"audioVolume"`
+	BgmFile            string   `json:"bgmFile"`
+	Speed              float64  `json:"speed"`
+	SubtitleFile       string   `json:"subtitleFile"`
+	SubtitleText       string   `json:"subtitleText"`
+	SubtitlePosition   string   `json:"subtitlePosition"`
+	SubtitleFontSize   int      `json:"subtitleFontSize"`
+	SubtitleColor      string   `json:"subtitleColor"`
+	LogoFile           string   `json:"logoFile"`
+	WatermarkX         int      `json:"watermarkX"`
+	WatermarkY         int      `json:"watermarkY"`
+	WatermarkOpacity   float64  `json:"watermarkOpacity"`
+	ThumbnailTime      string   `json:"thumbnailTime"`
+	ThumbnailInterval  float64  `json:"thumbnailInterval"`
+	ThumbnailCount     int      `json:"thumbnailCount"`
 }
 
 type Crop struct {
@@ -88,6 +109,30 @@ func validate(job *Job) error {
 	if job.Kind == "merge" && len(job.InputFiles) < 2 {
 		return errors.New("merge requires at least two input files")
 	}
+	if job.Kind == "convert" && !isOutputFormat(job.OutputFormat) {
+		return fmt.Errorf("unsupported output format: %s", job.OutputFormat)
+	}
+	if job.Kind == "resize" && (job.ResizeWidth <= 0 || job.ResizeHeight <= 0) {
+		return errors.New("resize dimensions must be positive")
+	}
+	if job.Kind == "speed" && job.Speed <= 0 {
+		return errors.New("speed must be positive")
+	}
+	if job.Kind == "addBgm" && job.BgmFile == "" {
+		return errors.New("bgm file is required")
+	}
+	if job.Kind == "subtitles" && job.SubtitleFile == "" && job.SubtitleText == "" {
+		return errors.New("subtitle file or text is required")
+	}
+	if job.Kind == "watermark" && job.LogoFile == "" {
+		return errors.New("logo file is required")
+	}
+	if (job.Kind == "thumbnails" || job.Kind == "contactSheet") && job.ThumbnailInterval <= 0 {
+		return errors.New("thumbnail interval must be positive")
+	}
+	if job.Kind == "thumbnails" && job.ThumbnailCount <= 0 {
+		return errors.New("thumbnail count must be positive")
+	}
 	return nil
 }
 
@@ -112,6 +157,9 @@ func run(job Job) error {
 	output := job.OutputFile
 	if output == "" {
 		output = defaultOutput(job, inputs[0])
+		if job.OutputDirectory != "" {
+			output = filepath.Join(job.OutputDirectory, output)
+		}
 	}
 	return runOne(job, inputs[0], output)
 }
@@ -134,7 +182,7 @@ func collectInputs(job Job) []string {
 }
 
 func isBatch(kind string, inputs []string) bool {
-	return len(inputs) > 1 && (kind == "crop" || kind == "trim" || kind == "removeSilence")
+	return len(inputs) > 1 && (kind == "crop" || kind == "trim" || kind == "removeSilence" || kind == "convert" || kind == "resize" || kind == "volume" || kind == "removeAudio" || kind == "normalizeAudio" || kind == "speed" || kind == "thumbnail")
 }
 
 func runBatch(job Job, inputs []string, workers int) error {
@@ -272,9 +320,100 @@ func commandArgs(job Job, input, output string) ([]string, error) {
 		return nil, nil
 	case "trim":
 		return []string{"-y", "-i", input, "-map", "0", "-c", "copy", "-f", "segment", "-segment_time", job.SplitInterval, "-reset_timestamps", "1", filepath.Join(job.OutputDirectory, trimPattern(input))}, nil
+	case "convert":
+		codec, err := videoCodec(job.VideoCodec)
+		if err != nil {
+			return nil, err
+		}
+		return []string{"-y", "-i", input, "-c:v", codec, "-b:v", defaultBitrate(job.VideoBitrate), "-c:a", "aac", "-movflags", "+faststart", output}, nil
+	case "resize":
+		if job.ResizeWidth <= 0 || job.ResizeHeight <= 0 {
+			return nil, errors.New("resize dimensions must be positive")
+		}
+		return []string{"-y", "-i", input, "-vf", fmt.Sprintf("scale=%d:%d", job.ResizeWidth, job.ResizeHeight), "-c:v", "libx264", "-c:a", "aac", output}, nil
+	case "volume":
+		return []string{"-y", "-i", input, "-af", fmt.Sprintf("volume=%.3f", job.AudioVolume), "-c:v", "copy", "-c:a", "aac", output}, nil
+	case "extractAudio":
+		return []string{"-y", "-i", input, "-vn", "-c:a", "libmp3lame", output}, nil
+	case "removeAudio":
+		return []string{"-y", "-i", input, "-an", "-c:v", "copy", output}, nil
+	case "normalizeAudio":
+		return []string{"-y", "-i", input, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:v", "copy", "-c:a", "aac", output}, nil
+	case "addBgm":
+		return []string{"-y", "-i", input, "-stream_loop", "-1", "-i", job.BgmFile, "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=2[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", output}, nil
+	case "speed":
+		if job.Speed <= 0 {
+			return nil, errors.New("speed must be positive")
+		}
+		return []string{"-y", "-i", input, "-vf", fmt.Sprintf("setpts=PTS/%.3f", job.Speed), "-af", atempoFilter(job.Speed), "-c:v", "libx264", "-c:a", "aac", output}, nil
+	case "subtitles":
+		filter := ""
+		if job.SubtitleFile != "" {
+			filter = fmt.Sprintf("subtitles='%s'", escapeFilterPath(job.SubtitleFile))
+		} else {
+			position := job.SubtitlePosition
+			if position == "" {
+				position = "bottom"
+			}
+			y := "h-th-40"
+			if position == "top" {
+				y = "40"
+			} else if position == "middle" {
+				y = "(h-th)/2"
+			}
+			size := job.SubtitleFontSize
+			if size <= 0 {
+				size = 32
+			}
+			color := job.SubtitleColor
+			if color == "" {
+				color = "white"
+			}
+			filter = fmt.Sprintf("drawtext=text='%s':fontsize=%d:fontcolor=%s:x=(w-tw)/2:y=%s:box=1:boxcolor=black@0.5", escapeFilterText(job.SubtitleText), size, color, y)
+		}
+		return []string{"-y", "-i", input, "-vf", filter, "-c:v", "libx264", "-c:a", "copy", output}, nil
+	case "watermark":
+		opacity := job.WatermarkOpacity
+		if opacity <= 0 || opacity > 1 {
+			opacity = 0.65
+		}
+		return []string{"-y", "-i", input, "-i", job.LogoFile, "-filter_complex", fmt.Sprintf("[1:v]format=rgba,colorchannelmixer=aa=%.3f[logo];[0:v][logo]overlay=%d:%d", opacity, job.WatermarkX, job.WatermarkY), "-c:v", "libx264", "-c:a", "copy", output}, nil
+	case "thumbnail":
+		return []string{"-y", "-ss", job.ThumbnailTime, "-i", input, "-frames:v", "1", "-q:v", "2", output}, nil
+	case "thumbnails":
+		base, ext := splitExtension(output)
+		pattern := output
+		if !strings.Contains(output, "%") {
+			pattern = base + "-%03d" + ext
+		}
+		return []string{"-y", "-i", input, "-vf", fmt.Sprintf("fps=1/%.3f", job.ThumbnailInterval), "-frames:v", fmt.Sprint(job.ThumbnailCount), "-q:v", "2", pattern}, nil
+	case "contactSheet":
+		return []string{"-y", "-i", input, "-vf", fmt.Sprintf("fps=1/%.3f,scale=320:-1,tile=4x4", job.ThumbnailInterval), "-frames:v", "1", "-q:v", "2", output}, nil
 	default:
 		return nil, fmt.Errorf("unsupported operation: %s", job.Kind)
 	}
+}
+
+func atempoFilter(speed float64) string {
+	filters := make([]string, 0, 4)
+	for speed > 2 {
+		filters = append(filters, "atempo=2.0")
+		speed /= 2
+	}
+	for speed < 0.5 {
+		filters = append(filters, "atempo=0.5")
+		speed /= 0.5
+	}
+	filters = append(filters, fmt.Sprintf("atempo=%.3f", speed))
+	return strings.Join(filters, ",")
+}
+
+func escapeFilterPath(value string) string {
+	return strings.NewReplacer("\\", "\\\\", ":", "\\:", "'", "\\'").Replace(value)
+}
+
+func escapeFilterText(value string) string {
+	return strings.NewReplacer("\\", "\\\\", ":", "\\:", "'", "\\'", "%", "\\%").Replace(value)
 }
 
 type silenceRange struct {
@@ -390,10 +529,51 @@ func executeFFmpeg(args []string) error {
 func defaultOutput(job Job, input string) string {
 	base := strings.TrimSuffix(filepath.Base(input), filepath.Ext(input))
 	suffix := job.Kind
+	ext := filepath.Ext(input)
 	if job.Kind == "removeSilence" {
 		suffix = "nosilence"
 	}
-	return fmt.Sprintf("%s-%s%s", base, suffix, filepath.Ext(input))
+	if job.Kind == "convert" {
+		suffix = "converted"
+		ext = "." + job.OutputFormat
+	}
+	if job.Kind == "extractAudio" {
+		suffix = "audio"
+		ext = ".mp3"
+	}
+	if job.Kind == "thumbnail" || job.Kind == "contactSheet" {
+		suffix = "thumbnail"
+		ext = ".jpg"
+	}
+	if job.Kind == "thumbnails" {
+		suffix = "thumbnail-%03d"
+		ext = ".jpg"
+	}
+	return fmt.Sprintf("%s-%s%s", base, suffix, ext)
+}
+
+func isOutputFormat(format string) bool {
+	return format == "mp4" || format == "mov" || format == "webm" || format == "mkv"
+}
+
+func videoCodec(codec string) (string, error) {
+	switch codec {
+	case "h264", "":
+		return "libx264", nil
+	case "h265":
+		return "libx265", nil
+	case "vp9":
+		return "libvpx-vp9", nil
+	default:
+		return "", fmt.Errorf("unsupported video codec: %s", codec)
+	}
+}
+
+func defaultBitrate(bitrate string) string {
+	if bitrate == "" {
+		return "5M"
+	}
+	return bitrate
 }
 
 func trimPattern(input string) string {

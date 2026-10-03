@@ -76,6 +76,49 @@ try {
   };
   assertOutput(runWorker(cropJob), outputFile);
 
+  // Exercise the main audio operations on a video that contains a sine-wave track.
+  const volumeOutput = path.join(tempDirectory, 'input-volume.mp4');
+  assertOutput(runWorker({ kind: 'volume', inputFile, outputFile: volumeOutput, audioVolume: 1.25 }), volumeOutput);
+  const extractedAudio = path.join(tempDirectory, 'input-audio.mp3');
+  assertOutput(runWorker({ kind: 'extractAudio', inputFile, outputFile: extractedAudio }), extractedAudio);
+  const silentOutput = path.join(tempDirectory, 'input-silent.mp4');
+  assertOutput(runWorker({ kind: 'removeAudio', inputFile, outputFile: silentOutput }), silentOutput);
+  const normalizedOutput = path.join(tempDirectory, 'input-normalized.mp4');
+  assertOutput(runWorker({ kind: 'normalizeAudio', inputFile, outputFile: normalizedOutput }), normalizedOutput);
+
+  // Exercise speed conversion with audio pitch preservation filters.
+  const speedOutput = path.join(tempDirectory, 'input-speed.mp4');
+  assertOutput(runWorker({ kind: 'speed', inputFile, outputFile: speedOutput, speed: 1.5 }), speedOutput);
+
+  // Exercise a single thumbnail and a contact sheet generated from interval frames.
+  const thumbnailOutput = path.join(tempDirectory, 'input-thumbnail.jpg');
+  assertOutput(runWorker({ kind: 'thumbnail', inputFile, outputFile: thumbnailOutput, thumbnailTime: '00:00:00.500' }), thumbnailOutput);
+  const contactDirectory = path.join(tempDirectory, 'contact-output');
+  fs.mkdirSync(contactDirectory);
+  const contactOutput = path.join(contactDirectory, 'input-thumbnail.jpg');
+  assertOutput(runWorker({ kind: 'contactSheet', inputFile, outputDirectory: contactDirectory, thumbnailInterval: 0.5 }), contactOutput);
+
+  // Exercise codec/container conversion with the default H.264 settings.
+  const convertOutput = path.join(tempDirectory, 'input-converted.mp4');
+  assertOutput(runWorker({
+    kind: 'convert',
+    inputFile,
+    outputFile: convertOutput,
+    outputFormat: 'mp4',
+    videoCodec: 'h264',
+    videoBitrate: '2M',
+  }), convertOutput);
+
+  // Exercise resizing to an explicit resolution.
+  const resizeOutput = path.join(tempDirectory, 'input-resized.mp4');
+  assertOutput(runWorker({
+    kind: 'resize',
+    inputFile,
+    outputFile: resizeOutput,
+    resizeWidth: 160,
+    resizeHeight: 120,
+  }), resizeOutput);
+
   // Exercise time-based cutting on the generated input.
   const cutOutput = path.join(tempDirectory, 'input-cut.mp4');
   assertOutput(runWorker({
@@ -120,9 +163,8 @@ try {
   }
   batchOutputs.forEach((output) => assertOutput(batchEvents, output));
 
-  console.log('Worker integration tests passed: crop, cut, loop, batch output naming');
+  console.log('Worker integration tests passed: crop, convert, resize, cut, loop, batch output naming');
 } finally {
-    
   // Keep the repository clean even when an assertion or external command fails.
   fs.rmSync(tempDirectory, { recursive: true, force: true });
 }

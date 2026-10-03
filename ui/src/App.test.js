@@ -23,6 +23,21 @@ test('shows operation options for crop, trim, merge and loop', () => {
   expect(screen.getByRole('option', { name: /loop|繰り返し/i })).toBeInTheDocument();
 });
 
+test('shows conversion and resize settings', () => {
+  render(<App />);
+
+  const operationSelect = screen.getByLabelText(/operation|操作/i);
+  fireEvent.change(operationSelect, { target: { value: 'convert' } });
+  expect(screen.getByLabelText(/output format|出力形式/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/video codec|映像コーデック/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/video bitrate|ビットレート/i)).toBeInTheDocument();
+
+  fireEvent.change(operationSelect, { target: { value: 'resize' } });
+  expect(screen.getByLabelText(/size preset|サイズプリセット/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/width|幅/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/height|高さ/i)).toBeInTheDocument();
+});
+
 test('uses Japanese labels by default for primary controls', () => {
   render(<App />);
 

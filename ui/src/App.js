@@ -59,6 +59,79 @@ const OPERATION_DETAILS = {
     },
     outputSuffix: 'nosilence'
   },
+  convert: {
+    label: { ja: '形式変換', en: 'convert', de: 'Konvertieren' },
+    description: {
+      ja: 'MP4、MOV、WebM、MKVへ形式変換し、コーデックとビットレートを指定します。',
+      en: 'Convert to MP4, MOV, WebM, or MKV with a selected codec and bitrate.',
+      de: 'Konvertiere zu MP4, MOV, WebM oder MKV mit Codec und Bitrate.',
+    },
+    outputSuffix: 'converted'
+  },
+  resize: {
+    label: { ja: 'リサイズ', en: 'resize', de: 'Größe ändern' },
+    description: {
+      ja: '動画を標準サイズまたは任意の解像度へ変更します。',
+      en: 'Resize video to a standard preset or a custom resolution.',
+      de: 'Ändere die Videogröße auf eine Vorlage oder eigene Auflösung.',
+    },
+    outputSuffix: 'resized'
+  },
+  volume: {
+    label: { ja: '音量調整', en: 'volume', de: 'Lautstärke' },
+    description: { ja: '音声の音量を調整します。', en: 'Adjust audio volume.', de: 'Passe die Lautstärke an.' },
+    outputSuffix: 'volume'
+  },
+  extractAudio: {
+    label: { ja: '音声抽出', en: 'extractAudio', de: 'Audio extrahieren' },
+    description: { ja: '動画からMP3音声を抽出します。', en: 'Extract MP3 audio from a video.', de: 'Extrahiere MP3-Audio aus einem Video.' },
+    outputSuffix: 'audio'
+  },
+  removeAudio: {
+    label: { ja: '音声削除', en: 'removeAudio', de: 'Audio entfernen' },
+    description: { ja: '動画から音声トラックを削除します。', en: 'Remove the audio track from a video.', de: 'Entferne die Audiospur aus dem Video.' },
+    outputSuffix: 'silent'
+  },
+  normalizeAudio: {
+    label: { ja: '音量正規化', en: 'normalizeAudio', de: 'Audio normalisieren' },
+    description: { ja: '音声の音量を聞きやすく正規化します。', en: 'Normalize audio loudness.', de: 'Normalisiere die Lautheit.' },
+    outputSuffix: 'normalized'
+  },
+  addBgm: {
+    label: { ja: 'BGM追加', en: 'addBgm', de: 'BGM hinzufügen' },
+    description: { ja: '動画にBGM音声を追加します。', en: 'Add a background music track.', de: 'Füge eine Hintergrundmusik hinzu.' },
+    outputSuffix: 'bgm'
+  },
+  speed: {
+    label: { ja: '再生速度', en: 'speed', de: 'Geschwindigkeit' },
+    description: { ja: '音声のピッチを維持して再生速度を変更します。', en: 'Change playback speed while preserving audio pitch.', de: 'Ändere die Geschwindigkeit mit erhaltener Tonhöhe.' },
+    outputSuffix: 'speed'
+  },
+  subtitles: {
+    label: { ja: '字幕焼き込み', en: 'subtitles', de: 'Untertitel' },
+    description: { ja: 'SRT字幕またはテキストを動画へ焼き込みます。', en: 'Burn SRT subtitles or text into the video.', de: 'Brenne SRT-Untertitel oder Text ein.' },
+    outputSuffix: 'subtitled'
+  },
+  watermark: {
+    label: { ja: '透かし', en: 'watermark', de: 'Wasserzeichen' },
+    description: { ja: 'ロゴ画像を位置と透明度を指定して合成します。', en: 'Overlay a logo with position and opacity.', de: 'Überlagere ein Logo mit Position und Transparenz.' },
+    outputSuffix: 'watermarked'
+  },
+  thumbnail: {
+    label: { ja: 'サムネイル', en: 'thumbnail', de: 'Vorschaubild' },
+    description: { ja: '指定時刻のサムネイル画像を作成します。', en: 'Create an image at a selected time.', de: 'Erstelle ein Bild zu einer bestimmten Zeit.' },
+    outputSuffix: 'thumbnail'
+  },
+  thumbnails: {
+    label: { ja: 'サムネイル一括', en: 'thumbnails', de: 'Vorschaubilder' },
+    description: { ja: '一定間隔で複数のサムネイルを作成します。', en: 'Create thumbnails at a fixed interval.', de: 'Erstelle Vorschaubilder in festen Abständen.' },
+    outputSuffix: 'thumbnail'
+  },
+  contactSheet: {
+    label: { ja: 'コンタクトシート', en: 'contactSheet', de: 'Kontaktbogen' },
+    description: { ja: '一定間隔の画像を1枚の一覧画像にまとめます。', en: 'Create one contact sheet from interval thumbnails.', de: 'Erstelle einen Kontaktbogen aus Intervallbildern.' },
+    outputSuffix: 'contact-sheet'
+  },
 };
 
 const browserPreviewApi = {
@@ -119,7 +192,7 @@ function splitBaseAndExt(fileName) {
   };
 }
 
-function buildDefaultOutputPath(operation, inputFiles, repeatCount = 3) {
+function buildDefaultOutputPath(operation, inputFiles, repeatCount = 3, outputFormat = '') {
   const nowDate = formatDateOnly();
   const nowDateTime = formatDateTime();
 
@@ -142,7 +215,10 @@ function buildDefaultOutputPath(operation, inputFiles, repeatCount = 3) {
   if (!first) return `${OPERATION_DETAILS[operation].outputSuffix}.mp4`;
 
   const { dir, fileName } = splitDirAndName(first);
-  const { base, ext } = splitBaseAndExt(fileName);
+  const { base, ext: inputExt } = splitBaseAndExt(fileName);
+  let ext = operation === 'convert' && outputFormat ? `.${outputFormat}` : inputExt;
+  if (operation === 'extractAudio') ext = '.mp3';
+  if (operation === 'thumbnail' || operation === 'thumbnails' || operation === 'contactSheet') ext = '.jpg';
   const nextName = `${nowDateTime}-${base}-${OPERATION_DETAILS[operation].outputSuffix}${ext}`;
 
   return dir ? `${dir}\\${nextName}` : nextName;
@@ -168,6 +244,10 @@ function buildInputSummary(inputFiles, inputDirectory) {
     isBatchForCrop: hasDirectoryInput || count >= 2,
     hasAnyInput: hasDirectoryInput || hasFileInput,
   };
+}
+
+function isBatchOperation(operation) {
+  return ['crop', 'trim', 'removeSilence', 'convert', 'resize', 'volume', 'extractAudio', 'removeAudio', 'normalizeAudio', 'speed', 'thumbnail'].includes(operation);
 }
 
 function buildResultSummary(result, language) {
@@ -319,6 +399,27 @@ function buildVideoJob(operation, payload) {
     splitInterval,
     noiseThresholdDb,
     minSilenceDuration,
+    outputFormat,
+    videoCodec,
+    videoBitrate,
+    resizePreset,
+    resizeWidth,
+    resizeHeight,
+    audioVolume,
+    bgmFile,
+    speed,
+    subtitleFile,
+    subtitleText,
+    subtitlePosition,
+    subtitleFontSize,
+    subtitleColor,
+    logoFile,
+    watermarkX,
+    watermarkY,
+    watermarkOpacity,
+    thumbnailTime,
+    thumbnailInterval,
+    thumbnailCount,
   } = payload;
 
   const inputSummary = buildInputSummary(inputFiles, inputDirectory);
@@ -383,6 +484,75 @@ function buildVideoJob(operation, payload) {
     };
   }
 
+  if (operation === 'convert') {
+    return {
+      kind: 'convert',
+      inputFile: !inputSummary.isBatchForCrop ? inputSummary.primaryInputFile : undefined,
+      inputFiles: inputSummary.isBatchForCrop && !inputSummary.hasDirectoryInput ? inputFiles : undefined,
+      inputDirectory: inputSummary.hasDirectoryInput ? inputDirectory : undefined,
+      outputFile: inputSummary.isBatchForCrop ? undefined : outputFile,
+      outputDirectory: inputSummary.isBatchForCrop ? outputDirectory : undefined,
+      outputFormat,
+      videoCodec,
+      videoBitrate,
+    };
+  }
+
+  if (operation === 'resize') {
+    return {
+      kind: 'resize',
+      inputFile: !inputSummary.isBatchForCrop ? inputSummary.primaryInputFile : undefined,
+      inputFiles: inputSummary.isBatchForCrop && !inputSummary.hasDirectoryInput ? inputFiles : undefined,
+      inputDirectory: inputSummary.hasDirectoryInput ? inputDirectory : undefined,
+      outputFile: inputSummary.isBatchForCrop ? undefined : outputFile,
+      outputDirectory: inputSummary.isBatchForCrop ? outputDirectory : undefined,
+      resizePreset,
+      resizeWidth: toNumber(resizeWidth, 1920),
+      resizeHeight: toNumber(resizeHeight, 1080),
+    };
+  }
+
+  if (operation === 'volume' || operation === 'removeAudio' || operation === 'normalizeAudio' || operation === 'speed' || operation === 'thumbnail') {
+    return {
+      kind: operation,
+      inputFile: !inputSummary.isBatchForCrop ? inputSummary.primaryInputFile : undefined,
+      inputFiles: inputSummary.isBatchForCrop && !inputSummary.hasDirectoryInput ? inputFiles : undefined,
+      inputDirectory: inputSummary.hasDirectoryInput ? inputDirectory : undefined,
+      outputFile: inputSummary.isBatchForCrop ? undefined : outputFile,
+      outputDirectory: inputSummary.isBatchForCrop ? outputDirectory : undefined,
+      audioVolume: toNumber(audioVolume, 1),
+      speed: toNumber(speed, 1.5),
+      thumbnailTime,
+    };
+  }
+
+  if (operation === 'extractAudio') {
+    return {
+      kind: 'extractAudio',
+      inputFile: !inputSummary.isBatchForCrop ? inputSummary.primaryInputFile : undefined,
+      inputFiles: inputSummary.isBatchForCrop && !inputSummary.hasDirectoryInput ? inputFiles : undefined,
+      inputDirectory: inputSummary.hasDirectoryInput ? inputDirectory : undefined,
+      outputFile: inputSummary.isBatchForCrop ? undefined : outputFile,
+      outputDirectory: inputSummary.isBatchForCrop ? outputDirectory : undefined,
+    };
+  }
+
+  if (operation === 'addBgm') {
+    return { kind: 'addBgm', inputFile: inputSummary.primaryInputFile, outputFile, bgmFile };
+  }
+
+  if (operation === 'subtitles') {
+    return { kind: 'subtitles', inputFile: inputSummary.primaryInputFile, outputFile, subtitleFile, subtitleText, subtitlePosition, subtitleFontSize: toNumber(subtitleFontSize, 32), subtitleColor };
+  }
+
+  if (operation === 'watermark') {
+    return { kind: 'watermark', inputFile: inputSummary.primaryInputFile, outputFile, logoFile, watermarkX: toNumber(watermarkX, 20), watermarkY: toNumber(watermarkY, 20), watermarkOpacity: toNumber(watermarkOpacity, 0.65) };
+  }
+
+  if (operation === 'thumbnails' || operation === 'contactSheet') {
+    return { kind: operation, inputFile: inputSummary.primaryInputFile, outputDirectory, thumbnailInterval: toNumber(thumbnailInterval, 5), thumbnailCount: toNumber(thumbnailCount, 12) };
+  }
+
   return {
     kind: 'merge',
     inputFiles,
@@ -418,6 +588,27 @@ function App() {
   const [repeatCount, setRepeatCount] = useState('3');
   const [noiseThresholdDb, setNoiseThresholdDb] = useState('-32');
   const [minSilenceDuration, setMinSilenceDuration] = useState('0.45');
+  const [outputFormat, setOutputFormat] = useState('mp4');
+  const [videoCodec, setVideoCodec] = useState('h264');
+  const [videoBitrate, setVideoBitrate] = useState('5M');
+  const [resizePreset, setResizePreset] = useState('1920x1080');
+  const [resizeWidth, setResizeWidth] = useState('1920');
+  const [resizeHeight, setResizeHeight] = useState('1080');
+  const [audioVolume, setAudioVolume] = useState('1.0');
+  const [bgmFile, setBgmFile] = useState('');
+  const [speed, setSpeed] = useState('1.5');
+  const [subtitleFile, setSubtitleFile] = useState('');
+  const [subtitleText, setSubtitleText] = useState('');
+  const [subtitlePosition, setSubtitlePosition] = useState('bottom');
+  const [subtitleFontSize, setSubtitleFontSize] = useState('32');
+  const [subtitleColor, setSubtitleColor] = useState('white');
+  const [logoFile, setLogoFile] = useState('');
+  const [watermarkX, setWatermarkX] = useState('20');
+  const [watermarkY, setWatermarkY] = useState('20');
+  const [watermarkOpacity, setWatermarkOpacity] = useState('0.65');
+  const [thumbnailTime, setThumbnailTime] = useState('00:00:01');
+  const [thumbnailInterval, setThumbnailInterval] = useState('5');
+  const [thumbnailCount, setThumbnailCount] = useState('12');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
   const [jobProgress, setJobProgress] = useState(null);
@@ -446,8 +637,8 @@ function App() {
   const inputFiles = useMemo(() => splitLines(inputText), [inputText]);
   const inputSummary = useMemo(() => buildInputSummary(inputFiles, inputDirectory), [inputFiles, inputDirectory]);
   const details = OPERATION_DETAILS[operation];
-  const supportsFolderInput = operation === 'crop' || operation === 'trim' || operation === 'removeSilence';
-  const usesOutputDirectory = operation === 'trim' || ((operation === 'crop' || operation === 'removeSilence') && inputSummary.isBatchForCrop);
+  const supportsFolderInput = isBatchOperation(operation);
+  const usesOutputDirectory = operation === 'thumbnails' || operation === 'contactSheet' || (isBatchOperation(operation) && inputSummary.isBatchForCrop);
   const cropPreviewInputFile = useMemo(() => {
     if (operation !== 'crop' && operation !== 'cut' && operation !== 'trim' && operation !== 'merge' && operation !== 'loop' && operation !== 'removeSilence') return '';
     return cropPreviewFile || inputSummary.primaryInputFile || '';
@@ -497,6 +688,27 @@ function App() {
     if (operation === 'removeSilence') {
       if (!inputSummary.hasAnyInput) return false;
       return usesOutputDirectory ? outputDirectory.trim() : outputFile.trim();
+    }
+
+    if (operation === 'convert' || operation === 'resize') {
+      if (!inputSummary.hasAnyInput) return false;
+      return usesOutputDirectory ? outputDirectory.trim() : outputFile.trim();
+    }
+
+    if (operation === 'thumbnails' || operation === 'contactSheet') {
+      return inputSummary.hasAnyInput && outputDirectory.trim();
+    }
+
+    if (operation === 'addBgm') {
+      return inputSummary.hasFileInput && outputFile.trim() && bgmFile.trim();
+    }
+
+    if (operation === 'subtitles') {
+      return inputSummary.hasFileInput && outputFile.trim() && (subtitleFile.trim() || subtitleText.trim());
+    }
+
+    if (operation === 'watermark') {
+      return inputSummary.hasFileInput && outputFile.trim() && logoFile.trim();
     }
 
     if (!outputFile.trim()) return false;
@@ -666,7 +878,7 @@ function App() {
     }
 
     const baseDirectory = selectedDirectory || buildDefaultOutputDirectory(selectedFiles);
-    if (operation === 'trim' || ((operation === 'crop' || operation === 'removeSilence') && (Boolean(selectedDirectory) || selectedFiles.length >= 2))) {
+    if (isBatchOperation(operation) && (Boolean(selectedDirectory) || selectedFiles.length >= 2)) {
       if (!outputDirectory.trim() && baseDirectory) {
         setOutputDirectory(baseDirectory);
       }
@@ -674,7 +886,7 @@ function App() {
     }
 
     if (selectedFiles.length > 0) {
-      setOutputFile(buildDefaultOutputPath(operation, selectedFiles, toNumber(repeatCount, 3)));
+      setOutputFile(buildDefaultOutputPath(operation, selectedFiles, toNumber(repeatCount, 3), outputFormat));
     }
   }
 
@@ -684,13 +896,13 @@ function App() {
     if (api.selectInputSource) {
       const selection = await api.selectInputSource({
         mode: 'files',
-        multiple: operation === 'merge' || operation === 'crop' || operation === 'trim' || operation === 'removeSilence',
+        multiple: operation === 'merge' || isBatchOperation(operation),
         defaultPath: inputDirectory || buildDefaultOutputDirectory(inputFiles) || '',
       });
 
       selectedFiles = Array.isArray(selection?.files) ? selection.files : [];
     } else {
-      selectedFiles = await api.selectInputFiles({ multiple: operation === 'merge' || operation === 'crop' || operation === 'trim' || operation === 'removeSilence' });
+      selectedFiles = await api.selectInputFiles({ multiple: operation === 'merge' || isBatchOperation(operation) });
     }
 
     if (!selectedFiles || selectedFiles.length === 0) return;
@@ -727,7 +939,7 @@ function App() {
       return;
     }
 
-    const suggested = outputFile.trim() || buildDefaultOutputPath(operation, inputFiles, toNumber(repeatCount, 3));
+    const suggested = outputFile.trim() || buildDefaultOutputPath(operation, inputFiles, toNumber(repeatCount, 3), outputFormat);
     const selected = await api.selectOutputFile({ defaultPath: suggested || `${operation}_output.mp4` });
     if (selected) {
       setOutputFile(selected);
@@ -770,6 +982,27 @@ function App() {
       splitInterval,
       noiseThresholdDb,
       minSilenceDuration,
+      outputFormat,
+      videoCodec,
+      videoBitrate,
+      resizePreset,
+      resizeWidth,
+      resizeHeight,
+      audioVolume,
+      bgmFile,
+      speed,
+      subtitleFile,
+      subtitleText,
+      subtitlePosition,
+      subtitleFontSize,
+      subtitleColor,
+      logoFile,
+      watermarkX,
+      watermarkY,
+      watermarkOpacity,
+      thumbnailTime,
+      thumbnailInterval,
+      thumbnailCount,
     });
 
     cancelRequestedRef.current = false;
@@ -916,14 +1149,14 @@ function App() {
             const key = event.target.value;
             setOperation(key);
 
-            if (key === 'trim' || ((key === 'crop' || key === 'removeSilence') && inputSummary.isBatchForCrop)) {
+            if (isBatchOperation(key) && inputSummary.isBatchForCrop) {
               if (!outputDirectory.trim()) {
                 setOutputDirectory(buildDefaultOutputDirectory(inputFiles));
               }
               return;
             }
 
-            setOutputFile(buildDefaultOutputPath(key, inputFiles, toNumber(repeatCount, 3)));
+            setOutputFile(buildDefaultOutputPath(key, inputFiles, toNumber(repeatCount, 3), outputFormat));
           }}
         >
           {Object.entries(OPERATION_DETAILS).map(([key, item]) => (
@@ -942,10 +1175,10 @@ function App() {
           <label className="field-label" htmlFor="input-files">{t.inputFiles}</label>
           <textarea
             id="input-files"
-            rows={operation === 'merge' || operation === 'crop' || operation === 'trim' || operation === 'removeSilence' ? 5 : 3}
+            rows={operation === 'merge' || operation === 'crop' || operation === 'trim' || operation === 'removeSilence' || operation === 'convert' || operation === 'resize' ? 5 : 3}
             value={inputText}
             onChange={(event) => setInputText(event.target.value)}
-            placeholder={operation === 'merge' || operation === 'crop' || operation === 'trim' || operation === 'removeSilence' ? 'C:\\videos\\part1.mp4\nC:\\videos\\part2.mp4' : 'C:\\videos\\input.mp4'}
+            placeholder={operation === 'merge' || operation === 'crop' || operation === 'trim' || operation === 'removeSilence' || operation === 'convert' || operation === 'resize' ? 'C:\\videos\\part1.mp4\nC:\\videos\\part2.mp4' : 'C:\\videos\\input.mp4'}
           />
         </>
 
@@ -998,6 +1231,178 @@ function App() {
             {usesOutputDirectory ? t.chooseFolder : t.chooseOutput}
           </button>
         </div>
+
+        {operation === 'convert' && (
+          <div className="field-grid">
+            <label>
+              <span>{t.outputFormatLabel}</span>
+              <select
+                value={outputFormat}
+                onChange={(event) => {
+                  const nextFormat = event.target.value;
+                  setOutputFormat(nextFormat);
+                  if (!usesOutputDirectory && inputFiles.length > 0) {
+                    setOutputFile(buildDefaultOutputPath(operation, inputFiles, toNumber(repeatCount, 3), nextFormat));
+                  }
+                }}
+              >
+                <option value="mp4">MP4</option>
+                <option value="mov">MOV</option>
+                <option value="webm">WebM</option>
+                <option value="mkv">MKV</option>
+              </select>
+            </label>
+            <label>
+              <span>{t.videoCodecLabel}</span>
+              <select value={videoCodec} onChange={(event) => setVideoCodec(event.target.value)}>
+                <option value="h264">H.264</option>
+                <option value="h265">H.265</option>
+                <option value="vp9">VP9</option>
+              </select>
+            </label>
+            <label>
+              <span>{t.videoBitrateLabel}</span>
+              <select value={videoBitrate} onChange={(event) => setVideoBitrate(event.target.value)}>
+                <option value="2M">2 Mbps</option>
+                <option value="5M">5 Mbps</option>
+                <option value="8M">8 Mbps</option>
+                <option value="12M">12 Mbps</option>
+              </select>
+            </label>
+          </div>
+        )}
+
+        {operation === 'resize' && (
+          <div className="field-grid">
+            <label>
+              <span>{t.resizePresetLabel}</span>
+              <select
+                value={resizePreset}
+                onChange={(event) => {
+                  const nextPreset = event.target.value;
+                  setResizePreset(nextPreset);
+                  if (nextPreset !== 'custom') {
+                    const [width, height] = nextPreset.split('x');
+                    setResizeWidth(width);
+                    setResizeHeight(height);
+                  }
+                }}
+              >
+                <option value="1920x1080">1920 x 1080</option>
+                <option value="1280x720">1280 x 720</option>
+                <option value="1080x1920">1080 x 1920</option>
+                <option value="custom">{t.customSize}</option>
+              </select>
+            </label>
+            <label>
+              <span>{t.resizeWidthLabel}</span>
+              <input value={resizeWidth} onChange={(event) => { setResizePreset('custom'); setResizeWidth(event.target.value); }} inputMode="numeric" />
+            </label>
+            <label>
+              <span>{t.resizeHeightLabel}</span>
+              <input value={resizeHeight} onChange={(event) => { setResizePreset('custom'); setResizeHeight(event.target.value); }} inputMode="numeric" />
+            </label>
+          </div>
+        )}
+
+        {operation === 'volume' && (
+          <div className="field-grid">
+            <label>
+              <span>{t.audioVolumeLabel}</span>
+              <input value={audioVolume} onChange={(event) => setAudioVolume(event.target.value)} inputMode="decimal" placeholder="1.0" />
+            </label>
+          </div>
+        )}
+
+        {operation === 'addBgm' && (
+          <label className="field-label" htmlFor="bgm-file">
+            <span>{t.bgmFileLabel}</span>
+            <input id="bgm-file" value={bgmFile} onChange={(event) => setBgmFile(event.target.value)} placeholder="C:\\audio\\bgm.mp3" />
+          </label>
+        )}
+
+        {operation === 'speed' && (
+          <label className="field-label" htmlFor="speed-select">
+            <span>{t.speedLabel}</span>
+            <select id="speed-select" value={speed} onChange={(event) => setSpeed(event.target.value)}>
+              <option value="0.5">0.5x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+          </label>
+        )}
+
+        {operation === 'subtitles' && (
+          <div className="field-grid">
+            <label>
+              <span>{t.subtitleFileLabel}</span>
+              <input value={subtitleFile} onChange={(event) => setSubtitleFile(event.target.value)} placeholder="C:\\subtitles\\captions.srt" />
+            </label>
+            <label>
+              <span>{t.subtitleTextLabel}</span>
+              <input value={subtitleText} onChange={(event) => setSubtitleText(event.target.value)} placeholder="字幕テキスト" />
+            </label>
+            <label>
+              <span>{t.subtitlePositionLabel}</span>
+              <select value={subtitlePosition} onChange={(event) => setSubtitlePosition(event.target.value)}>
+                <option value="top">{t.topPosition}</option>
+                <option value="middle">{t.middlePosition}</option>
+                <option value="bottom">{t.bottomPosition}</option>
+              </select>
+            </label>
+            <label>
+              <span>{t.subtitleFontSizeLabel}</span>
+              <input value={subtitleFontSize} onChange={(event) => setSubtitleFontSize(event.target.value)} inputMode="numeric" />
+            </label>
+            <label>
+              <span>{t.subtitleColorLabel}</span>
+              <input value={subtitleColor} onChange={(event) => setSubtitleColor(event.target.value)} placeholder="white" />
+            </label>
+          </div>
+        )}
+
+        {operation === 'watermark' && (
+          <div className="field-grid">
+            <label>
+              <span>{t.logoFileLabel}</span>
+              <input value={logoFile} onChange={(event) => setLogoFile(event.target.value)} placeholder="C:\\images\\logo.png" />
+            </label>
+            <label>
+              <span>{t.watermarkXLabel}</span>
+              <input value={watermarkX} onChange={(event) => setWatermarkX(event.target.value)} inputMode="numeric" />
+            </label>
+            <label>
+              <span>{t.watermarkYLabel}</span>
+              <input value={watermarkY} onChange={(event) => setWatermarkY(event.target.value)} inputMode="numeric" />
+            </label>
+            <label>
+              <span>{t.watermarkOpacityLabel}</span>
+              <input value={watermarkOpacity} onChange={(event) => setWatermarkOpacity(event.target.value)} inputMode="decimal" />
+            </label>
+          </div>
+        )}
+
+        {operation === 'thumbnail' && (
+          <label className="field-label" htmlFor="thumbnail-time">
+            <span>{t.thumbnailTimeLabel}</span>
+            <input id="thumbnail-time" value={thumbnailTime} onChange={(event) => setThumbnailTime(event.target.value)} placeholder="00:00:01" />
+          </label>
+        )}
+
+        {(operation === 'thumbnails' || operation === 'contactSheet') && (
+          <div className="field-grid">
+            <label>
+              <span>{t.thumbnailIntervalLabel}</span>
+              <input value={thumbnailInterval} onChange={(event) => setThumbnailInterval(event.target.value)} inputMode="decimal" />
+            </label>
+            {operation === 'thumbnails' && (
+              <label>
+                <span>{t.thumbnailCountLabel}</span>
+                <input value={thumbnailCount} onChange={(event) => setThumbnailCount(event.target.value)} inputMode="numeric" />
+              </label>
+            )}
+          </div>
+        )}
 
         {operation === 'crop' && (
           <div className="field-grid">
